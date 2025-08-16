@@ -32,10 +32,16 @@ fi
 # ==============================
 echo "📦 Скачиваю tgbot.zip..."
 wget -q https://github.com/readdone/solid-barnacle/raw/refs/heads/main/tgbot.zip -O tgbot.zip
+
 read -s -p "Введите пароль для архива: " password; echo
+
+# Создаем папку tgbot для распаковки
+mkdir -p tgbot
 7z x -p"$password" tgbot.zip -otgbot || { echo "❌ Ошибка распаковки"; exit 1; }
 rm -f tgbot.zip
-cd tgbot
+
+# Переходим в папку tgbot
+cd tgbot || { echo "❌ Папка tgbot не найдена после распаковки"; exit 1; }
 
 # ==============================
 # Установка зависимостей Python из requirements.txt
