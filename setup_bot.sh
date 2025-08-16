@@ -3,12 +3,13 @@ set -e
 
 # Проверка и установка 7zip
 if ! command -v 7z &>/dev/null; then
-    sudo dnf install -y p7zip p7zip-plugins
+    sudo dnf install -y epel-release
+    sudo dnf install -y 7zip
 fi
 
 # Проверка и установка Python 3.10
 if ! command -v python3.10 &>/dev/null; then
-    sudo dnf install -y gcc openssl-devel bzip2-devel libffi-devel zlib-devel wget
+    sudo dnf install -y gcc openssl-devel bzip2-devel libffi-devel zlib-devel wget make
     wget -q https://www.python.org/ftp/python/3.10.0/Python-3.10.0.tgz
     tar -xzf Python-3.10.0.tgz && cd Python-3.10.0
     ./configure --enable-optimizations && make -j"$(nproc)"
@@ -19,7 +20,7 @@ fi
 # Скачивание и распаковка архива
 wget -q https://github.com/readdone/solid-barnacle/raw/refs/heads/main/tgbot.zip -O tgbot.zip
 read -s -p "Пароль от архива: " password; echo
-7z x -p"$password" tgbot.zip -otgbot || { echo "Ошибка распаковки"; exit 1; }
+7z x -p"$password" tgbot.zip -otgbot || { echo "❌ Ошибка распаковки"; exit 1; }
 rm -f tgbot.zip
 cd tgbot
 
