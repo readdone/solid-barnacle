@@ -21,25 +21,6 @@ echo
 
 mkdir -p "$DEST_DIR"
 
-python3 - <<EOF
-import zipfile, sys
-archive = "$ARCHIVE_NAME"
-dest = "$DEST_DIR"
-password = "$PASSWORD".encode()
-try:
-    with zipfile.ZipFile(archive) as zf:
-        zf.extractall(path=dest, pwd=password)
-    print("✅ Архив успешно распакован")
-except RuntimeError as e:
-    print("❌ Ошибка распаковки:", e)
-    sys.exit(1)
-except zipfile.BadZipFile:
-    print("❌ Ошибка: повреждённый архив")
-    sys.exit(1)
-EOF
-
-# ==============================
-# Установка зависимостей Python из requirements.txt
 # ==============================
 cd "$DEST_DIR"
 
