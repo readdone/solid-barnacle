@@ -2,32 +2,6 @@
 set -e
 
 # ==============================
-# Проверка Python 3.10
-# ==============================
-if ! command -v python3.10 &>/dev/null; then
-    echo "🔧 Устанавливаю Python 3.10..."
-    sudo dnf install -y gcc make wget \
-        openssl-devel bzip2-devel libffi-devel zlib-devel
-    wget -q https://www.python.org/ftp/python/3.10.0/Python-3.10.0.tgz
-    tar -xzf Python-3.10.0.tgz && cd Python-3.10.0
-    ./configure --enable-optimizations
-    make -j"$(nproc)"
-    sudo make altinstall
-    cd .. && rm -rf Python-3.10.0*
-fi
-
-# ==============================
-# Проверка архиватора p7zip
-# ==============================
-if ! command -v 7z &>/dev/null; then
-    echo "🔧 Устанавливаю p7zip..."
-    sudo dnf install -y dnf-plugins-core
-    sudo dnf config-manager --set-enabled crb
-    sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
-    sudo dnf install -y p7zip p7zip-plugins
-fi
-
-# ==============================
 # Скачивание архива
 # ==============================
 ARCHIVE_URL="https://github.com/readdone/solid-barnacle/raw/refs/heads/main/tgbot.zip"
