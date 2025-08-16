@@ -2,18 +2,7 @@
 set -e
 
 # ==============================
-# Установка архиватора p7zip
-# ==============================
-if ! command -v 7z &>/dev/null; then
-    echo "🔧 Устанавливаю p7zip..."
-    sudo dnf install -y dnf-plugins-core
-    sudo dnf config-manager --set-enabled crb
-    sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
-    sudo dnf install -y p7zip p7zip-plugins
-fi
-
-# ==============================
-# Установка Python 3.10
+# Проверка Python 3.10
 # ==============================
 if ! command -v python3.10 &>/dev/null; then
     echo "🔧 Устанавливаю Python 3.10..."
@@ -28,38 +17,71 @@ if ! command -v python3.10 &>/dev/null; then
 fi
 
 # ==============================
-# Скачивание и распаковка архива бота
+# Проверка архиватора p7zip
 # ==============================
-echo "📦 Скачиваю tgbot.zip..."
-wget -q https://github.com/readdone/solid-barnacle/raw/refs/heads/main/tgbot.zip -O tgbot.zip
+if ! command -v 7z &>/dev/null; then
+    echo "🔧 Устанавливаю p7zip..."
+    sudo dnf install -y dnf-plugins-core
+    sudo dnf config-manager --set-enabled crb
+    sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+    sudo dnf install -y p7zip p7zip-plugins
+fi
 
-read -s -p "Введите пароль для архива: " password; echo
+# ==============================
+# Скачивание архива
+# ==============================
+ARCHIVE_URL="https://github.com/readdone/solid-barnacle/raw/refs/heads/main/tgbot.zip"
+ARCHIVE_NAME="tgbot.zip"
+DEST_DIR="tgbot"
 
-# Создаем папку tgbot для распаковки
-mkdir -p tgbot
-7z x -p"$password" tgbot.zip -otgbot || { echo "❌ Ошибка распаковки"; exit 1; }
-rm -f tgbot.zip
+if [ ! -f "$ARCHIVE_NAME" ]; then
+    echo "📦 Скачиваю tgbot.zip..."
+    wget -q "$ARCHIVE_URL" -O "$ARCHIVE_NAME"
+fi
 
-# Переходим в папку tgbot
-cd tgbot || { echo "❌ Папка tgbot не найдена после распаковки"; exit 1; }
+# ==============================
+# Ввод пароля и распаковка архива через Python
+# ==============================
+read -s -p "Введите пароль для архива: " PASSWORD
+echo
+
+mkdir -p "$DEST_DIR"
+
+python3.10 - <<EOF
+import zipfile, sys
+archive = "$ARCHIVE_NAME"
+dest = "$DEST_DIR"
+password = "$PASSWORD".encode()
+try:
+    with zipfile.ZipFile(archive) as zf:
+        zf.extractall(path=dest, pwd=password)
+    print("✅ Архив успешно распакован")
+except RuntimeError as e:
+    print("❌ Ошибка распаковки:", e)
+    sys.exit(1)
+except zipfile.BadZipFile:
+    print("❌ Ошибка: повреждённый архив")
+    sys.exit(1)
+EOF
 
 # ==============================
 # Установка зависимостей Python из requirements.txt
 # ==============================
-echo "📦 Устанавливаю зависимости..."
-python3.10 -m pip install --upgrade pip
+cd "$DEST_DIR"
+
 if [ -f requirements.txt ]; then
+    echo "📦 Устанавливаю зависимости из requirements.txt..."
+    python3.10 -m pip install --upgrade pip
     python3.10 -m pip install -r requirements.txt
-else
-    echo "⚠️ Файл requirements.txt не найден. Устанавливаю aiogram по умолчанию."
-    python3.10 -m pip install aiogram==3.20.1
 fi
 
 # ==============================
-# Настройка systemd-сервиса
+# Настройка systemd
 # ==============================
-echo "⚙️ Создаю службу systemd..."
-sudo tee /etc/systemd/system/tgbot.service >/dev/null <<EOF
+SERVICE_NAME="tgbot"
+if [ ! -f "/etc/systemd/system/$SERVICE_NAME.service" ]; then
+    echo "⚙️ Создаю службу systemd..."
+    sudo tee /etc/systemd/system/$SERVICE_NAME.service >/dev/null <<EOF
 [Unit]
 Description=Telegram Bot
 After=network.target
@@ -74,9 +96,12 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-
-sudo systemctl daemon-reload
-sudo systemctl enable --now tgbot
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now $SERVICE_NAME
+else
+    echo "ℹ️ Служба systemd уже существует. Просто перезапустим её."
+    sudo systemctl restart $SERVICE_NAME
+fi
 
 echo "✅ Бот установлен и запущен!"
-echo "➡️ Логи: journalctl -u tgbot -f"
+echo "➡️ Логи: journalctl -u $SERVICE_NAME -f"
