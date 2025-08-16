@@ -21,7 +21,7 @@ echo
 
 mkdir -p "$DEST_DIR"
 
-python3.10 - <<EOF
+python3 - <<EOF
 import zipfile, sys
 archive = "$ARCHIVE_NAME"
 dest = "$DEST_DIR"
