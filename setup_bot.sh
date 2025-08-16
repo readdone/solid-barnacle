@@ -1,20 +1,5 @@
 #!/bin/bash
 
-# Установка Python 3.10 на CentOS 9 Stream
-if ! command -v python3.10 &> /dev/null; then
-    echo "Установка Python 3.10..."
-    sudo dnf install -y gcc openssl-devel bzip2-devel libffi-devel zlib-devel wget
-    wget https://www.python.org/ftp/python/3.10.0/Python-3.10.0.tgz
-    tar -xzf Python-3.10.0.tgz
-    cd Python-3.10.0 || exit
-    ./configure --enable-optimizations
-    make -j$(nproc)
-    sudo make altinstall
-    cd ..
-    rm -rf Python-3.10.0.tgz Python-3.10.0
-fi
-
-# Скачивание архива
 echo "Скачивание tgbot.zip..."
 wget https://github.com/readdone/solid-barnacle/raw/refs/heads/main/tgbot.zip -O tgbot.zip
 
