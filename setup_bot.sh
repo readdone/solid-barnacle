@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Установка p7zip для работы с современными архивами
+# Установка 7z (для распаковки архивов)
 if ! command -v 7z &> /dev/null; then
     echo "Установка p7zip..."
     sudo dnf install -y p7zip p7zip-plugins
@@ -24,55 +24,33 @@ fi
 echo "Скачивание tgbot.zip..."
 wget https://github.com/readdone/solid-barnacle/raw/refs/heads/main/tgbot.zip -O tgbot.zip
 
-# Проверка скачивания
-if [ ! -f tgbot.zip ]; then
-    echo "Ошибка: не удалось скачать архив"
-    exit 1
-fi
-
-# Распаковка с помощью 7z
+# Распаковка с паролем
 read -s -p "Введите пароль для архива: " password
 echo
-7z x -p"$password" tgbot.zip -otgbot_temp
-
-# Проверка результата распаковки
+7z x -p"$password" tgbot.zip -otgbot
 if [ $? -ne 0 ]; then
-    echo "Ошибка распаковки! Возможные причины:"
-    echo "1. Неверный пароль"
-    echo "2. Поврежденный архив"
-    echo "3. Неподдерживаемый метод сжатия"
+    echo "Ошибка распаковки! Проверьте пароль и целостность архива."
     rm -f tgbot.zip
     exit 1
 fi
+rm -f tgbot.zip
 
-# Проверка содержимого
-if [ ! -d "tgbot_temp" ]; then
-    echo "Ошибка: папка не была создана"
-    echo "Содержимое текущей директории:"
-    ls
-    rm -f tgbot.zip
-    exit 1
-fi
-
-# Переименование папки (если нужно)
-mv tgbot_temp tgbot 2>/dev/null || true
-
-# Проверка целевой папки
+# Проверка папки tgbot
 if [ ! -d "tgbot" ]; then
-    echo "Ошибка: не найдена папка с ботом"
-    echo "Попробуйте вручную:"
-    echo "1. unzip -P ваш_пароль tgbot.zip"
-    echo "2. Или 7z x -pваш_пароль tgbot.zip"
-    rm -f tgbot.zip
+    echo "Ошибка: папка tgbot не найдена после распаковки"
+    ls
     exit 1
 fi
 
-# Установка зависимостей
+# Переход в папку с ботом
 cd tgbot || exit
+
+# Установка aiogram 3.2.1 и зависимостей
 sudo python3.10 -m pip install --upgrade pip
 sudo python3.10 -m pip install aiogram==3.2.1
 
-# Настройка автозапуска
+# Настройка автозапуска через systemd
+echo "Создание службы systemd..."
 cat <<EOF | sudo tee /etc/systemd/system/tgbot.service > /dev/null
 [Unit]
 Description=Telegram Bot
@@ -94,5 +72,4 @@ sudo systemctl daemon-reload
 sudo systemctl enable tgbot
 sudo systemctl start tgbot
 
-echo "Бот успешно установлен!"
-echo "Для просмотра логов: journalctl -u tgbot -f"
+echo "Бот установлен и запущен. Для просмотра логов: journalctl -u tgbot -f"
